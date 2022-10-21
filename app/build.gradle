@@ -1,0 +1,91 @@
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+}
+
+android {
+    compileSdk 32
+
+    dataBinding{
+        enabled true
+    }
+
+
+        viewBinding {
+            enabled true
+        }
+
+        defaultConfig {
+            applicationId "com.example.srisu"
+            minSdk 21
+            targetSdk 32
+            versionCode 1
+            versionName "1.0"
+
+            testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        }
+
+
+        buildTypes {
+            release {
+                minifyEnabled false
+                proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            }
+        }
+    namespace 'com.example.srisu'
+}
+
+dependencies {
+
+    implementation 'androidx.appcompat:appcompat:1.5.1'
+    implementation 'com.google.android.material:material:1.7.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.firebase:firebase-auth:21.1.0'
+    implementation 'com.google.firebase:firebase-storage:20.1.0'
+    implementation 'com.google.firebase:firebase-database:20.1.0'
+    implementation 'com.google.firebase:firebase-messaging:23.1.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+
+//    Country Code Picker Dependency
+    implementation 'com.hbb20:ccp:2.6.1'
+
+//    PinView Dependency
+    implementation 'io.github.chaosleung:pinview:1.4.4'
+
+//    Circular ImageView Dependency
+    implementation 'de.hdodenhof:circleimageview:3.1.0'
+
+//    Reaction Dependency
+    implementation "com.github.pgreze:android-reactions:1.6"
+
+//    Retrofit Dependency + Firebase Notification Dependency
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+
+    implementation platform('com.google.firebase:firebase-bom:30.1.0')
+    implementation 'com.firebaseui:firebase-ui-database:8.0.1'
+    implementation 'com.google.firebase:firebase-messaging:23.1.0'
+    implementation 'com.google.firebase:firebase-core:21.1.1'
+    implementation 'com.google.firebase:firebase-config'
+
+
+//    Volley Library
+    implementation 'com.android.volley:volley:1.2.1'
+
+//    Glide dependency
+    implementation 'com.github.bumptech.glide:glide:4.13.2'
+
+//    RecordView
+    implementation 'com.github.3llomi:RecordView:3.1.1'
+
+//    ZoomImageView Dependency
+    implementation 'com.jsibbold:zoomage:1.3.1'
+
+
+//    Retrofit Api
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.retrofit2:adapter-rxjava3:2.9.0'
+}

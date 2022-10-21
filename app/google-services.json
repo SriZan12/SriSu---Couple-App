@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "589340981384",
+    "project_id": "srisu-97bdf",
+    "storage_bucket": "srisu-97bdf.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589340981384:android:9a0353315c5f10cb4e873d",
+        "android_client_info": {
+          "package_name": "com.example.srisu"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "589340981384-qkliveh705r842ha928eg24qcqrmvtvm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTWiZh0O_smrpD1xq7kKVXzHR5YjRmZf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "589340981384-qkliveh705r842ha928eg24qcqrmvtvm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="12dp">
+
+        <LinearLayout
+            android:id="@+id/reaction_linear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:id="@+id/like"
+                android:layout_weight="1"
+                android:src="@drawable/like"
+                android:layout_margin="8dp"
+                android:layout_gravity="center_vertical|center_horizontal"
+                android:contentDescription="@string/app_name" />
+
+            <ImageView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:id="@+id/love"
+                android:layout_weight="1"
+                android:src="@drawable/love"
+                android:layout_margin="8dp"
+                android:layout_gravity="center_vertical|center_horizontal"
+                android:contentDescription="@string/app_name" />
+
+            <ImageView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:id="@+id/wow"
+                android:layout_weight="1"
+                android:src="@drawable/haha"
+                android:layout_margin="8dp"
+                android:layout_gravity="center_vertical|center_horizontal"
+                android:contentDescription="@string/app_name" />
+
+            <ImageView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_weight="1"
+                android:id="@+id/angry"
+                android:src="@drawable/angry"
+                android:layout_margin="8dp"
+                android:layout_gravity="center_vertical|center_horizontal"
+                android:contentDescription="@string/app_name" />
+
+            <ImageView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_weight="1"
+                android:id="@+id/haha"
+                android:src="@drawable/laughing"
+                android:layout_margin="8dp"
+                android:layout_gravity="center_vertical|center_horizontal"
+                android:contentDescription="@string/app_name" />
+
+            <ImageView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_weight="1"
+                android:id="@+id/sad"
+                android:src="@drawable/sad"
+                android:layout_margin="8dp"
+                android:layout_gravity="center_vertical|center_horizontal"
+                android:contentDescription="@string/app_name" />
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
