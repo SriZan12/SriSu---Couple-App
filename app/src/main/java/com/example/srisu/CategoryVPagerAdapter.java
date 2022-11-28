@@ -6,12 +6,12 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 
 import CategoryFragment.Activity.ActivitiesFragment;
-import CategoryFragment.Facts.FactsFragment;
+import CategoryFragment.Entertainment.EntertainmentFragment;
 import CategoryFragment.Jokes.JokesFragment;
 import CategoryFragment.Memes.MemesFragment;
 import CategoryFragment.Bored.BoredFragment;
 import CategoryFragment.LoveStories.StoriesFragment;
-import CategoryFragment.Movie.MovieFragment;
+import CategoryFragment.Entertainment.Movie.MovieFragment;
 
 public class CategoryVPagerAdapter extends FragmentPagerAdapter {
 
@@ -37,7 +37,7 @@ public class CategoryVPagerAdapter extends FragmentPagerAdapter {
             case 4:
                 return new MemesFragment();
             case 5:
-                return new MovieFragment();
+                return new EntertainmentFragment();
         }
         return null;
     }

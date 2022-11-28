@@ -1,6 +1,7 @@
 package ChatsSection;
 
 import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -42,15 +43,15 @@ import java.io.InputStream;
 import java.util.HashMap;
 
 
-
 public class EditProfileActivity extends AppCompatActivity {
 
-    private static final int PICK_IMAGE = 100 ;
+    private static final int PICK_IMAGE = 100;
     private final int STORAGE_PERMISSION_CODE = 10;
     ProgressDialog progressDialog;
     Uri filepath;
     ActivityEditProfileAcivityBinding activityEditProfileAcivityBinding;
-    String FullName, UserName, ImageUrl;
+    String FullName;
+    String UserName;
     String Uid;
     FirebaseAuth firebaseAuth;
     FirebaseUser firebaseUser;
@@ -66,8 +67,8 @@ public class EditProfileActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate: " + Uid);
 
         firebaseUser = firebaseAuth.getCurrentUser();
-        if(firebaseUser != null){
-            if(firebaseUser.getPhotoUrl() != null){
+        if (firebaseUser != null) { // Loading the photo of user through Glide Library
+            if (firebaseUser.getPhotoUrl() != null) {
                 Glide.with(this)
                         .load(firebaseUser.getPhotoUrl())
                         .into(activityEditProfileAcivityBinding.editProfileImage);
@@ -80,13 +81,13 @@ public class EditProfileActivity extends AppCompatActivity {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
 
-//                        UserName
-                            UserName = snapshot.child("userName").getValue(String.class);
-                            activityEditProfileAcivityBinding.userName.setText(UserName);
+//                        Setting Up user's UserName
+                        UserName = snapshot.child("userName").getValue(String.class);
+                        activityEditProfileAcivityBinding.userName.setText(UserName);
 
-//                            FullName
-                        activityEditProfileAcivityBinding.fullName.setText
-                                (snapshot.child("fullName").getValue(String.class));
+//                         Setting up User's FullName
+                        FullName = snapshot.child("fullName").getValue(String.class);
+                        activityEditProfileAcivityBinding.fullName.setText(FullName);
 
                     }
 
@@ -110,21 +111,21 @@ public class EditProfileActivity extends AppCompatActivity {
                 activityEditProfileAcivityBinding.editProfileImage.setImageURI(filepath);
 
                 Log.d(TAG, "onClick: " + filepath);
-                String Fullname = activityEditProfileAcivityBinding.fullName.getText().toString();
+                String FullName = activityEditProfileAcivityBinding.fullName.getText().toString();
                 String username = activityEditProfileAcivityBinding.userName.getText().toString();
-                UpdateNamesToFirebase(Fullname, username);
+                UpdateNamesToFirebase(FullName, username);
 
                 FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
 
                 UserProfileChangeRequest request = new UserProfileChangeRequest.Builder()
-                        .setDisplayName(Fullname)
+                        .setDisplayName(FullName)
                         .build();
 
                 assert firebaseUser != null;
                 firebaseUser.updateProfile(request).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void unused) {
-                        activityEditProfileAcivityBinding.fullName.setText(Fullname);
+                        activityEditProfileAcivityBinding.fullName.setText(FullName);
                         Toast.makeText(EditProfileActivity.this, "Profile Updated !", Toast.LENGTH_SHORT).show();
                     }
                 }).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -140,32 +141,17 @@ public class EditProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void UpdateNamesToFirebase(String fullname, String username) {
 
-        HashMap<String,Object> profileMap = new HashMap<>();
-        profileMap.put("fullName",fullname);
-        profileMap.put("userName",username);
-
-        FirebaseDatabase.getInstance().getReference().child("Users").child(Uid)
-                .updateChildren(profileMap).addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void unused) {
-                    }
-                });
-
-    }
-
-
-    private void CheckPermission() {
-        if(ContextCompat.checkSelfPermission(EditProfileActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-            pickImage();
-        }else{
+    private void CheckPermission() { // Checking if the permission for Storage is granted or not!!
+        if (ContextCompat.checkSelfPermission(EditProfileActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            pickImage(); // If it is granted as above code checks, it will directly take the user to there Gallery
+        } else {
             RequestPermission();
         }
     }
 
-    private void RequestPermission() {
-        if(ActivityCompat.shouldShowRequestPermissionRationale(EditProfileActivity.this,Manifest.permission.READ_EXTERNAL_STORAGE)){
+    private void RequestPermission() { // if the permission is not granted it will ask for the permit
+        if (ActivityCompat.shouldShowRequestPermissionRationale(EditProfileActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
             new AlertDialog.Builder(EditProfileActivity.this)
                     .setMessage("Browse the Image")
                     .setTitle("Uploader")
@@ -183,24 +169,24 @@ public class EditProfileActivity extends AppCompatActivity {
                         }
                     })
                     .create().show();
-        }else{
-            ActivityCompat.requestPermissions(EditProfileActivity.this,new
-                    String[]{Manifest.permission.READ_EXTERNAL_STORAGE},STORAGE_PERMISSION_CODE);
+        } else {
+            ActivityCompat.requestPermissions(EditProfileActivity.this, new
+                    String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_CODE);
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 
-        if(requestCode == STORAGE_PERMISSION_CODE){
-            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED ){
+        if (requestCode == STORAGE_PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 pickImage();
             }
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-    private void pickImage() {
+    private void pickImage() { // This method will take user to Gallery
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType("image/*");
         startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE);
@@ -210,23 +196,23 @@ public class EditProfileActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode == PICK_IMAGE && resultCode== RESULT_OK){
+        if (requestCode == PICK_IMAGE && resultCode == RESULT_OK) {
             assert data != null;
             filepath = data.getData();
 
-            try{
+            try {
                 InputStream inputStream = getContentResolver().openInputStream(filepath);
                 Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
                 activityEditProfileAcivityBinding.editProfileImage.setImageBitmap(bitmap);
-                UploadToFirebase(bitmap);
+                UploadToFirebase();
 
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private void UploadToFirebase(Bitmap bitmap) {
+    private void UploadToFirebase() {
         progressDialog = new ProgressDialog(EditProfileActivity.this);
         progressDialog.setTitle("SriSu");
         progressDialog.show();
@@ -235,7 +221,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 .child("UserProfileImages")
                 .child(Uid);
 
-        reference.putFile(filepath).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+        reference.putFile(filepath).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() { // it saves the image in firebase
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                 getDownloadImageUrl(reference);
@@ -243,24 +229,39 @@ public class EditProfileActivity extends AppCompatActivity {
         }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onProgress(@NonNull UploadTask.TaskSnapshot snapshot) {
-                float percent = (100 * snapshot.getBytesTransferred() / snapshot.getTotalByteCount());
+                float percent = (100 * snapshot.getBytesTransferred() / snapshot.getTotalByteCount()); // This shows the progress of saving
                 progressDialog.setMessage("Updating : " + (int) percent + "%");
             }
         });
     }
 
-    private void getDownloadImageUrl(StorageReference reference) {
+    private void getDownloadImageUrl(StorageReference reference) { // This method will download the image's Url from firebase and set the userProfile.
 
         reference.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
             @Override
             public void onSuccess(Uri uri) {
-                setUserProfile(uri);
+                setUserProfileImage(uri);
             }
         });
 
     }
 
-    private void setUserProfile(Uri uri) {
+    private void UpdateNamesToFirebase(String fullName, String username) { // Updating the Name of the user
+
+        HashMap<String, Object> profileMap = new HashMap<>();
+        profileMap.put("fullName", fullName);
+        profileMap.put("userName", username);
+
+        FirebaseDatabase.getInstance().getReference().child("Users").child(Uid)
+                .updateChildren(profileMap).addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                    }
+                });
+
+    }
+
+    private void setUserProfileImage(Uri uri) { // This method will help updating the image of user
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         UserProfileChangeRequest request = new UserProfileChangeRequest.Builder()
                 .setPhotoUri(uri)

@@ -1,4 +1,4 @@
-package CategoryFragment.Movie;
+package CategoryFragment.Entertainment.Movie;
 
 import static android.content.ContentValues.TAG;
 
@@ -43,7 +43,7 @@ public class MovieDetailActivity extends AppCompatActivity {
         ShowMovieDetails(MovieTitle);
     }
 
-    private void hideStatusBar() {
+    private void hideStatusBar() { // --> This Function will hide the Status Bar of the phone
         View decorView = getWindow().getDecorView();
        // Hide the status bar.
         int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
@@ -52,7 +52,7 @@ public class MovieDetailActivity extends AppCompatActivity {
     }
 
 
-    private void ShowMovieDetails(String movieTitle){
+    private void ShowMovieDetails(String movieTitle){ // Fetching all the movie details through Volley Library Api.
 
         String url = "https://www.omdbapi.com/?t="+movieTitle+"&plot=full&apiKey="+Apikey;
 
@@ -72,11 +72,20 @@ public class MovieDetailActivity extends AppCompatActivity {
                             String Actors = response.getString("Actors");
                             String Type = response.getString("Type");
                             String ImDB = response.getString("imdbRating");
-//                            String totalSeasons = response.getString("totalSeasons");
                             String Poster = response.getString("Poster");
                             String plot = response.getString("Plot");
                             String release = response.getString("Released");
                             String Country = response.getString("Country");
+
+                            if(Type.equals("series")) {
+                                String totalSeasons = response.getString("totalSeasons");
+                                movieDetailBinding.box.setText("TotalSeasons: ");
+                                movieDetailBinding.boxOffice.setText(totalSeasons);
+                            }else{
+                                String BoxOffice = response.getString("BoxOffice");
+                                movieDetailBinding.box.setText("BoxOffice: ");
+                                movieDetailBinding.boxOffice.setText(BoxOffice);
+                            }
 
                             Log.d(TAG, "onResponse: " + Title);
                             Log.d(TAG, "onResponse: " + plot);
@@ -119,5 +128,11 @@ public class MovieDetailActivity extends AppCompatActivity {
         requestQueue.add(jsonObjectRequest);
 
 
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
     }
 }

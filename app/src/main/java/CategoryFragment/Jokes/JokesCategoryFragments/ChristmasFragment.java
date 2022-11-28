@@ -47,7 +47,7 @@ public class ChristmasFragment extends Fragment {
                              Bundle savedInstanceState) {
 
 
-        christmasBinding =  FragmentChristmasBinding.inflate(inflater, container, false);
+        christmasBinding = FragmentChristmasBinding.inflate(inflater, container, false);
 
         showJokes();
 
@@ -60,31 +60,28 @@ public class ChristmasFragment extends Fragment {
         apiInstance.getChristmasJokes(10).enqueue(new Callback<MainModel>() {
             @Override
             public void onResponse(@NonNull Call<MainModel> call, @NonNull Response<MainModel> response) {
-                if(response.isSuccessful()){
+                if (response.isSuccessful()) {
 
                     assert response.body() != null;
                     JokesList = response.body().getJokesModelList();
 
-                    Log.d(TAG, "onResponse: " +  JokesList.size());
+                    Log.d(TAG, "onResponse: " + JokesList.size());
                     Log.d(TAG, "onResponse: " + Arrays.toString(JokesList.toArray()));
 
 
                     clickListener = new ClickListener() {
                         @Override
                         public void CopyJoke(String text) {
-                            ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                            ClipData clip = ClipData.newPlainText("label", text);
-                            clipboard.setPrimaryClip(clip);
-                            Toast.makeText(getContext(), "Copied to Clipboard", Toast.LENGTH_SHORT).show();
+                            CopyJoke(text);
                         }
                     };
 
                     christmasBinding.christmasRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
-                    anyJokesAdapter = new AnyJokesAdapter(getContext(),JokesList,clickListener);
+                    anyJokesAdapter = new AnyJokesAdapter(getContext(), JokesList, clickListener);
                     christmasBinding.christmasRecycler.setAdapter(anyJokesAdapter);
 
 
-                }else{
+                } else {
                     Toast.makeText(getContext(), "Not Responded!", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -94,5 +91,12 @@ public class ChristmasFragment extends Fragment {
                 Toast.makeText(getContext(), "Turn on Internet!", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void CopyJoke(String text) {
+        ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("label", text);
+        clipboard.setPrimaryClip(clip);
+        Toast.makeText(getContext(), "Copied to Clipboard", Toast.LENGTH_SHORT).show();
     }
 }

@@ -18,7 +18,7 @@
                 android:layout_height="42dp"
                 android:id="@+id/like"
                 android:layout_weight="1"
-                android:src="@drawable/like"
+                android:src="@drawable/likes"
                 android:layout_margin="8dp"
                 android:layout_gravity="center_vertical|center_horizontal"
                 android:contentDescription="@string/app_name" />

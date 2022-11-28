@@ -1,27 +1,22 @@
-package ChatsSection.ChatModel;
+package ChatsSection;
 
 public class ChatModel {
 
-    private String MessageId,message,SenderId,imageUrl,VoiceMessage;
-    private long TimeStamp;
-    private String reaction = "null";
+    private String MessageId,message,SenderId,imageUrl,VoiceMessage,nickname;
+    private String TimeStamp;
+    private String reaction;
 
     public ChatModel() {
     }
 
-    public ChatModel(String message, String senderId, long timeStamp) {
-        this.message = message;
-        SenderId = senderId;
-        TimeStamp = timeStamp;
-    }
-
-    public  ChatModel(String messageId, String message, String senderId, long timeStamp, String reaction) {
-        MessageId = messageId;
+    public ChatModel(String message, String senderId, String timeStamp,String reaction,String nickname) {
         this.message = message;
         SenderId = senderId;
         TimeStamp = timeStamp;
         this.reaction = reaction;
+        this.nickname = nickname;
     }
+
 
     public String getMessageId() {
         return MessageId;
@@ -47,11 +42,11 @@ public class ChatModel {
         SenderId = senderId;
     }
 
-    public long getTimeStamp() {
+    public String getTimeStamp() {
         return TimeStamp;
     }
 
-    public void setTimeStamp(long timeStamp) {
+    public void setTimeStamp(String timeStamp) {
         TimeStamp = timeStamp;
     }
 
@@ -77,5 +72,13 @@ public class ChatModel {
 
     public void setVoiceMessage(String voiceMessage) {
         VoiceMessage = voiceMessage;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 }

@@ -20,12 +20,11 @@
             android:layout_gravity="center"
             android:gravity="start|center"
             android:background="@drawable/edittext_design"
-            android:fontFamily="@font/aclonica"
             android:hint="Movie Title"
             android:minHeight="48dp"
             android:padding="8dp"
             android:textColor="@color/black"
-            android:textSize="22sp"
+            android:textSize="20sp"
             android:textStyle="bold"/>
 
         <LinearLayout
@@ -49,6 +48,43 @@
                 android:layout_weight="1"
                 android:text="Series" />
         </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <CheckBox
+                android:id="@+id/Anime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="6dp"
+                android:layout_weight="1"
+                android:text="Anime" />
+
+            <CheckBox
+                android:id="@+id/Drama"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="6dp"
+                android:layout_weight="1"
+                android:text="Drama" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/movieSource"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:layout_gravity="center"
+            android:gravity="start|center"
+            android:background="@drawable/edittext_design"
+            android:hint="Where to Watch?"
+            android:minHeight="48dp"
+            android:padding="8dp"
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
 
 
         <Button

@@ -178,7 +178,7 @@ public class BoredFragment extends Fragment {
         });
     }
 
-    private void showRandomTask(TextView taskView) {
+    private void showRandomTask(TextView taskView) { //--> Calling the Api for Random Task.
          String url = "https://www.boredapi.com/api/activity";
 
         RequestQueue requestQueue = Volley.newRequestQueue(getContext());
@@ -188,8 +188,6 @@ public class BoredFragment extends Fragment {
 
                     @Override
                     public void onResponse(JSONObject response) {
-
-                        Toast.makeText(getContext(), "Responded", Toast.LENGTH_SHORT).show();
 
                         String task = null;
                         try {
@@ -216,7 +214,7 @@ public class BoredFragment extends Fragment {
         requestQueue.add(jsonObjectRequest);
     }
 
-    private void showTypeTask(TextView taskView,String type){
+    private void showTypeTask(TextView taskView,String type){ //--> Calling the Api as per the user's Request
 
         String url = "https://www.boredapi.com/api/activity?" + "type=" + type;
 

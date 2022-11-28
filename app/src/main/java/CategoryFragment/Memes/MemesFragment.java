@@ -2,6 +2,7 @@ package CategoryFragment.Memes;
 
 import static android.content.ContentValues.TAG;
 
+import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.os.Bundle;
@@ -35,7 +36,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +47,7 @@ import java.util.Map;
 import CategoryFragment.Memes.Adapter.ClickListener;
 import CategoryFragment.Memes.Adapter.MemeAdapter;
 import CategoryFragment.Memes.Models.Memes;
-import ChatsSection.ChatModel.ChatModel;
+import ChatsSection.ChatModel;
 import ChatsSection.ChatsActivity;
 
 
@@ -72,7 +75,7 @@ public class MemesFragment extends Fragment {
         return memesBinding.getRoot();
     }
 
-    private void showMemes() {
+    private void showMemes() { // This will fetch all memes through Volley Library from Memes Api.
 
         url = "https://meme-api.herokuapp.com/gimme/50";
 
@@ -101,7 +104,7 @@ public class MemesFragment extends Fragment {
 
                             MemeClickListener = new ClickListener() {
                                 @Override
-                                public void Send(String ImageUrl) {
+                                public void Send(String ImageUrl) { // This method will send the meme ImageUrl to the partner as message.
                                     String randomPushKey = firebaseDatabase.getReference().push().getKey();
 
                                     FirebaseDatabase.getInstance().getReference().child("Uids").child(CurrentUid)
@@ -117,10 +120,6 @@ public class MemesFragment extends Fragment {
 
                                                     getToken();
 
-                                                    Date date = new Date();
-                                                    ChatModel chatsModel = new ChatModel("", CurrentUid, date.getTime());
-                                                    chatsModel.setMessage("Meme");
-                                                    chatsModel.setImageUrl(ImageUrl);
 
                                                     FirebaseDatabase.getInstance().getReference()
                                                             .child("Name_Id").child(ReceiverUid)
@@ -128,35 +127,42 @@ public class MemesFragment extends Fragment {
                                                                 @Override
                                                                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                                                                     NotificationName = snapshot.child("Nickname").getValue(String.class);
+
+                                                                    Calendar c = Calendar.getInstance();
+                                                                    @SuppressLint("SimpleDateFormat")
+                                                                    SimpleDateFormat sdf = new SimpleDateFormat("hh:mm aa");
+                                                                    String Datetime = sdf.format(c.getTime());
+                                                                    ChatModel chatsModel = new ChatModel("Meme", CurrentUid, Datetime, "null", NotificationName);
+                                                                    chatsModel.setImageUrl(ImageUrl);
+
+                                                                    assert randomPushKey != null;
+                                                                    FirebaseDatabase.getInstance().getReference().child("Chats")
+                                                                            .child(SenderRoom)
+                                                                            .child("messages")
+                                                                            .child(randomPushKey)
+                                                                            .setValue(chatsModel)
+                                                                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                @Override
+                                                                                public void onSuccess(Void unused) {
+                                                                                    firebaseDatabase.getReference().child("Chats")
+                                                                                            .child(ReceiverRoom)
+                                                                                            .child("messages")
+                                                                                            .child(randomPushKey)
+                                                                                            .setValue(chatsModel).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                                                @Override
+                                                                                                public void onSuccess(Void unused) {
+                                                                                                    SendNotification(NotificationName, "Meme", token);
+                                                                                                    Intent intent = new Intent(getActivity(), ChatsActivity.class);
+                                                                                                    startActivity(intent);
+                                                                                                }
+                                                                                            });
+                                                                                }
+                                                                            });
                                                                 }
 
                                                                 @Override
                                                                 public void onCancelled(@NonNull DatabaseError error) {
 
-                                                                }
-                                                            });
-
-                                                    assert randomPushKey != null;
-                                                    FirebaseDatabase.getInstance().getReference().child("Chats")
-                                                            .child(SenderRoom)
-                                                            .child("messages")
-                                                            .child(randomPushKey)
-                                                            .setValue(chatsModel)
-                                                            .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                                @Override
-                                                                public void onSuccess(Void unused) {
-                                                                    firebaseDatabase.getReference().child("Chats")
-                                                                            .child(ReceiverRoom)
-                                                                            .child("messages")
-                                                                            .child(randomPushKey)
-                                                                            .setValue(chatsModel).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                                                @Override
-                                                                                public void onSuccess(Void unused) {
-                                                                                    SendNotification(NotificationName, "Meme", token);
-                                                                                    Intent intent = new Intent(getActivity(), ChatsActivity.class);
-                                                                                    startActivity(intent);
-                                                                                }
-                                                                            });
                                                                 }
                                                             });
                                                 }
@@ -169,9 +175,9 @@ public class MemesFragment extends Fragment {
                                 }
 
                                 @Override
-                                public void Share(String Url) {
+                                public void Share(String Url) { // Sharing the Meme outside the app
                                     Intent intent = new Intent(Intent.ACTION_SEND);
-                                    intent.putExtra(Intent.EXTRA_TEXT,Url);
+                                    intent.putExtra(Intent.EXTRA_TEXT, Url);
                                     intent.setType("text/plain");
 
                                     try {

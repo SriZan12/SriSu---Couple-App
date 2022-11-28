@@ -71,9 +71,9 @@ public class MainActivity extends AppCompatActivity {
 
         toggle = new ActionBarDrawerToggle(this, activityMainBinding.drawer, R.string.yes, R.string.No);
         activityMainBinding.drawer.addDrawerListener(toggle);
-        toggle.syncState();
+        toggle.syncState(); // Navigation Drawer
 
-        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true); // for Go back feature
 
         firebaseAuth = FirebaseAuth.getInstance();
 
@@ -203,15 +203,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
 
+        getMenuInflater().inflate(R.menu.menu, menu);
+        MenuItem item = menu.findItem(R.id.message);
 
         FirebaseDatabase.getInstance().getReference().child("Users")
                 .child(CurrentUid).addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         Status = snapshot.child("relationship").getValue(String.class);
-                        getMenuInflater().inflate(R.menu.menu, menu);
-                        MenuItem item = menu.findItem(R.id.message);
 
+                        assert Status != null;
                         if (!Status.equals("Mingled")) {
                             item.setVisible(false);
                         }
@@ -236,12 +237,10 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
-        switch (item.getItemId()) {
-            case R.id.message:
-                Intent intent = new Intent(MainActivity.this, ChatsActivity.class);
-                intent.putExtra("activity", "Main");
-                startActivity(intent);
-
+        if (item.getItemId() == R.id.message) {
+            Intent intent = new Intent(MainActivity.this, ChatsActivity.class);
+            intent.putExtra("activity", "Main");
+            startActivity(intent);
         }
         return super.onOptionsItemSelected(item);
     }

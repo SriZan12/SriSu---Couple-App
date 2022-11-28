@@ -1,21 +1,33 @@
 package CategoryFragment.LoveStories;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import CategoryFragment.Entertainment.Music.MusicCommentModel;
+
 public class StoriesModel {
     private String PhotoUrl;
     private String BookName;
     private String Author;
-    private String  LowerCaseStoriesTitle;
+    private String LowerCaseStoriesTitle;
     String PDFUrl;
+    List<StoriesCommentModel> CommentList = new ArrayList<>();
+    String likeCount;
 
-    public StoriesModel() {
-    }
-
-    public StoriesModel(String photoUrl, String bookName, String author, String lowerCaseStoriesTitle,String pdfUrl) {
+    public StoriesModel(String photoUrl, String bookName, String author, String lowerCaseStoriesTitle, String PDFUrl, List<StoriesCommentModel> commentList) {
         PhotoUrl = photoUrl;
         BookName = bookName;
         Author = author;
         LowerCaseStoriesTitle = lowerCaseStoriesTitle;
-        PDFUrl = pdfUrl;
+        this.PDFUrl = PDFUrl;
+        CommentList = commentList;
+    }
+
+    public StoriesModel() {
+    }
+
+    public StoriesModel(String likeCount) {
+        this.likeCount = likeCount;
     }
 
     public String getPhotoUrl() {
@@ -57,4 +69,25 @@ public class StoriesModel {
     public void setPDFUrl(String PDFUrl) {
         this.PDFUrl = PDFUrl;
     }
+
+    public List<StoriesCommentModel> getCommentList() {
+        return CommentList;
+    }
+
+    public void setCommentList(List<StoriesCommentModel> commentList) {
+        CommentList = commentList;
+    }
+
+    public String getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(String likeCount) {
+        this.likeCount = likeCount;
+    }
 }
+
+
+
+
+

@@ -3,20 +3,14 @@ package SignInSection;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.app.Dialog;
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.provider.ContactsContract;
-import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Toast;
 
 import com.example.srisu.MainActivity;
-import com.example.srisu.R;
 import com.example.srisu.databinding.ActivityAddPartnerBinding;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
@@ -24,21 +18,18 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.storage.FirebaseStorage;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.MissingFormatArgumentException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Objects;
 
-import ChatsSection.ChatModel.ChatModel;
-import ChatsSection.ChatsActivity;
+import ChatsSection.ChatModel;
 
 public class AddPartnerActivity extends AppCompatActivity {
 
     private static final String TAG = "AddContact";
     ActivityAddPartnerBinding addPartnerBinding;
-    String CurrentUserNumber, no, isEngaged;
+    String CurrentUserNumber, EnteredNumber, isEngaged;
     String SenderRoom, ReceiverRoom, SenderUid, ReceiverUid;
     String Relationship;
     FirebaseAuth firebaseAuth;
@@ -53,7 +44,7 @@ public class AddPartnerActivity extends AppCompatActivity {
 
 
         firebaseAuth = FirebaseAuth.getInstance();
-        CurrentUserNumber = firebaseAuth.getCurrentUser().getPhoneNumber();
+        CurrentUserNumber = Objects.requireNonNull(firebaseAuth.getCurrentUser()).getPhoneNumber();
         SenderUid = firebaseAuth.getUid();
         progressDialog = new ProgressDialog(AddPartnerActivity.this);
 
@@ -64,7 +55,10 @@ public class AddPartnerActivity extends AppCompatActivity {
 
                 String partnerNickName = addPartnerBinding.partnerName.getText().toString();
                 String partnerNumber = addPartnerBinding.partnerNumber.getText().toString();
-                Date date = new Date();
+                Calendar c = Calendar.getInstance();
+                @SuppressLint("SimpleDateFormat")
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm aa");
+                String Datetime = sdf.format(c.getTime());
                 String RandomPushKey = FirebaseDatabase.getInstance().getReference().push().getKey();
 
                 if (partnerNumber.isEmpty()) {
@@ -84,10 +78,10 @@ public class AddPartnerActivity extends AppCompatActivity {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot snapshot) {
                                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                                    no = dataSnapshot.child("userNumber").getValue(String.class);
+                                    EnteredNumber = dataSnapshot.child("userNumber").getValue(String.class);
 
-                                    assert no != null;
-                                    if (no.equals(partnerNumber)) {
+                                    assert EnteredNumber != null;
+                                    if (EnteredNumber.equals(partnerNumber)) { // Checking if the number is signed in
                                         FirebaseDatabase.getInstance().getReference().child("Users")
                                                 .addValueEventListener(new ValueEventListener() {
                                                     @Override
@@ -110,10 +104,10 @@ public class AddPartnerActivity extends AppCompatActivity {
                                                                         SenderRoom = SenderUid + ReceiverUid;
                                                                         ReceiverRoom = ReceiverUid + SenderUid;
 
-                                                                        ChatModel chatModel = new ChatModel("Welcome to SriSu", SenderUid, date.getTime());
+                                                                        ChatModel chatModel = new ChatModel("Welcome to SriSu", SenderUid, Datetime, "false", "");
 
                                                                         assert RandomPushKey != null;
-                                                                        FirebaseDatabase.getInstance().getReference().child("ChatRoom")
+                                                                        FirebaseDatabase.getInstance().getReference().child("ChatRoom") // Setting the First Connection
                                                                                 .child(SenderRoom)
                                                                                 .child("Messages")
                                                                                 .child(RandomPushKey)
@@ -131,15 +125,15 @@ public class AddPartnerActivity extends AppCompatActivity {
                                                                                         intent.putExtra("status", "engaged");
                                                                                         intent.putExtra("name", partnerNickName);
                                                                                         intent.putExtra("uid", ReceiverUid);
-                                                                                        startActivity(intent);
+                                                                                        startActivity(intent); // Taking to MainActivity
                                                                                     }
                                                                                 });
 
-                                                                    }else{
+                                                                    } else {
                                                                         Toast.makeText(AddPartnerActivity.this, "Unable to Connect", Toast.LENGTH_SHORT).show();
                                                                         return;
                                                                     }
-                                                                }else{
+                                                                } else {
                                                                     Toast.makeText(AddPartnerActivity.this, "User Already Engaged", Toast.LENGTH_SHORT).show();
                                                                     return;
                                                                 }
@@ -160,7 +154,7 @@ public class AddPartnerActivity extends AppCompatActivity {
                                     }
                                 }
 
-                                if (!no.equals(partnerNumber)) {
+                                if (!EnteredNumber.equals(partnerNumber)) {
                                     Toast.makeText(AddPartnerActivity.this, "Tell Your Partner to signup as well", Toast.LENGTH_SHORT).show();
                                 }
 
@@ -181,7 +175,8 @@ public class AddPartnerActivity extends AppCompatActivity {
             public void onClick(View v) {
 
                 FirebaseDatabase.getInstance().getReference().child("Name_Id")
-                        .child(firebaseAuth.getUid()).removeValue();
+                        .child(Objects.requireNonNull(firebaseAuth.getUid())).removeValue(); // if the user wants to change the status to single then,
+//                all mingled data will be removed
 
                 Intent intent = new Intent(AddPartnerActivity.this, MainActivity.class);
                 intent.putExtra("activity", "AddPartner");

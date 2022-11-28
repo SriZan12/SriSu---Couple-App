@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.Manifest;
@@ -38,17 +39,15 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.bumptech.glide.Glide;
 import com.devlomi.record_view.OnRecordListener;
 import com.example.srisu.R;
+
 import com.example.srisu.databinding.ActivityChatsBinding;
-import com.firebase.ui.database.FirebaseArray;
+import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
@@ -63,16 +62,13 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ChatsSection.ChatModel.ChatModel;
-import SignInSection.AddPartnerActivity;
-import SignInSection.SignInActivity;
 
 public class ChatsActivity extends AppCompatActivity {
 
@@ -94,6 +90,7 @@ public class ChatsActivity extends AppCompatActivity {
     ActivityResultLauncher<String[]> PermissionGranted;
     private boolean isWritePermissionGranted = false;
     private boolean isRecordAudioPermissionGranted = false;
+    MessageAdapter messageAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,13 +98,13 @@ public class ChatsActivity extends AppCompatActivity {
         chatsBinding = ActivityChatsBinding.inflate(getLayoutInflater());
         setContentView(chatsBinding.getRoot());
 
-        setSupportActionBar(chatsBinding.toolbar);
+        setSupportActionBar(chatsBinding.toolbar); // Setting up the toolbar
 
         firebaseDatabase = FirebaseDatabase.getInstance();
         firebaseStorage = FirebaseStorage.getInstance();
         chats = new ArrayList<>();
-        Uid = FirebaseAuth.getInstance().getUid();
         firebaseAuth = FirebaseAuth.getInstance();
+        Uid = FirebaseAuth.getInstance().getUid();
         chatModel = new ChatModel();
 
         progressDialog = new ProgressDialog(this);
@@ -120,14 +117,14 @@ public class ChatsActivity extends AppCompatActivity {
                 .child(Uid).addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                            CheckForConfirmButton = dataSnapshot.getValue(String.class);
 
+                        if (snapshot.hasChild("isEngaged")) {
+
+                            CheckForConfirmButton = snapshot.child("isEngaged").getValue(String.class);
                             assert CheckForConfirmButton != null;
 
                             if (CheckForConfirmButton.equals("No")) {
                                 DialogForEngagement();
-                                break;
                             }
                         }
                     }
@@ -137,6 +134,8 @@ public class ChatsActivity extends AppCompatActivity {
 
                     }
                 });
+
+//        Multiple Permissions for Storage and Voice Recording
 
         PermissionGranted = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), new ActivityResultCallback<Map<String, Boolean>>() {
             @Override
@@ -156,7 +155,6 @@ public class ChatsActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 SendMessage();
-
             }
         });
 
@@ -170,7 +168,7 @@ public class ChatsActivity extends AppCompatActivity {
             }
         });
 
-
+//      To Show the status of Typing...
         final Handler handler = new Handler();
         chatsBinding.typedMessage.addTextChangedListener(new TextWatcher() {
             @Override
@@ -199,7 +197,7 @@ public class ChatsActivity extends AppCompatActivity {
         };
     }
 
-
+    //To get the Image from Gallery, Only one Image can be taken at once for this Version.
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode == 202 && resultCode == RESULT_OK) {
@@ -215,7 +213,7 @@ public class ChatsActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
                         if (task.isSuccessful()) {
                             progressDialog.dismiss();
-                            DownloadUrl(storageReference);
+                            SendPhoto(storageReference);
                         }
                     }
                 }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
@@ -230,19 +228,13 @@ public class ChatsActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private void DownloadUrl(StorageReference storageReference) {
+    //  Send Photo to the partner
+    private void SendPhoto(StorageReference storageReference) {
         storageReference.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
             @Override
             public void onSuccess(Uri uri) {
                 filepath = uri.toString();
                 String randomPushKey = firebaseDatabase.getReference().push().getKey();
-                String typedMessage = chatsBinding.typedMessage.getText().toString();
-
-                Date date = new Date();
-                ChatModel chatsModel = new ChatModel(typedMessage, CurrentUid, date.getTime());
-                chatsModel.setMessage("Photo");
-                chatsModel.setImageUrl(filepath);
-                chatsBinding.typedMessage.setText("");
 
                 FirebaseDatabase.getInstance().getReference()
                         .child("Name_Id").child(ReceiverUid)
@@ -250,6 +242,38 @@ public class ChatsActivity extends AppCompatActivity {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot snapshot) {
                                 NotificationName = snapshot.child("Nickname").getValue(String.class);
+
+                                Calendar c = Calendar.getInstance();
+                                @SuppressLint("SimpleDateFormat")
+                                SimpleDateFormat sdf = new SimpleDateFormat("hh:mm aa");
+                                String Datetime = sdf.format(c.getTime());
+
+                                ChatModel chatsModel = new ChatModel("", CurrentUid, Datetime, "null", NotificationName);
+                                chatsModel.setMessage("Photo");
+                                chatsModel.setImageUrl(filepath);
+
+                                assert randomPushKey != null;
+                                firebaseDatabase.getReference().child("Chats")
+                                        .child(SenderRoom)
+                                        .child("messages")
+                                        .child(randomPushKey)
+                                        .setValue(chatsModel)
+                                        .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void unused) {
+                                                firebaseDatabase.getReference().child("Chats")
+                                                        .child(ReceiverRoom)
+                                                        .child("messages")
+                                                        .child(randomPushKey)
+                                                        .setValue(chatsModel).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                            @SuppressLint("NotifyDataSetChanged")
+                                                            @Override
+                                                            public void onSuccess(Void unused) {
+                                                                SendNotification(NotificationName, "Photo", token);
+                                                            }
+                                                        });
+                                            }
+                                        });
                             }
 
                             @Override
@@ -257,44 +281,11 @@ public class ChatsActivity extends AppCompatActivity {
 
                             }
                         });
-
-                assert randomPushKey != null;
-                firebaseDatabase.getReference().child("Chats")
-                        .child(SenderRoom)
-                        .child("messages")
-                        .child(randomPushKey)
-                        .setValue(chatsModel)
-                        .addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void unused) {
-                                firebaseDatabase.getReference().child("Chats")
-                                        .child(ReceiverRoom)
-                                        .child("messages")
-                                        .child(randomPushKey)
-                                        .setValue(chatsModel).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                            @SuppressLint("NotifyDataSetChanged")
-                                            @Override
-                                            public void onSuccess(Void unused) {
-                                                SendNotification(NotificationName, "Photo", token);
-                                            }
-                                        });
-
-                                HashMap<String, Object> lastMessageObj = new HashMap<>();
-                                lastMessageObj.put("lastMessage", chatsModel.getMessage());
-                                lastMessageObj.put("messageTime", date.getTime());
-
-                                firebaseDatabase.getReference().child("Chats")
-                                        .child(SenderRoom).updateChildren(lastMessageObj);
-
-                                firebaseDatabase.getReference().child("Chats")
-                                        .child(ReceiverRoom).updateChildren(lastMessageObj);
-                            }
-                        });
-                Log.d(TAG, "onSuccess: " + filepath);
             }
         });
     }
 
+    //    Get the Token for Notification purpose
     private void getToken() {
         FirebaseDatabase.getInstance().getReference().child("Tokens")
                 .child(ReceiverUid).addValueEventListener(new ValueEventListener() {
@@ -315,14 +306,14 @@ public class ChatsActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
 
-        getMenuInflater().inflate(R.menu.engaged_menu,menu);
+        getMenuInflater().inflate(R.menu.engaged_menu, menu);
         getMenuInflater().inflate(R.menu.chats_menu, menu);
 
         return super.onCreateOptionsMenu(menu);
     }
 
 
-    @SuppressLint("NonConstantResourceId")
+    @SuppressLint({"NonConstantResourceId", "NotifyDataSetChanged"})
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
@@ -333,13 +324,14 @@ public class ChatsActivity extends AppCompatActivity {
 
             case R.id.VideoCall:
                 Toast.makeText(this, "Video Calling...", Toast.LENGTH_SHORT).show();
+                break;
 
             case R.id.UnEngaged:
                 HashMap<String, Object> hashMap = new HashMap<>();
                 hashMap.put("isEngaged", "No");
 
-                HashMap<String,Object> SingleMap = new HashMap<>();
-                SingleMap.put("Relationship"," ");
+                HashMap<String, Object> SingleMap = new HashMap<>();
+                SingleMap.put("Relationship", " ");
                 Toast.makeText(this, "UnEngaged!", Toast.LENGTH_SHORT).show();
 
                 assert Uid != null;
@@ -348,6 +340,8 @@ public class ChatsActivity extends AppCompatActivity {
 
                 FirebaseDatabase.getInstance().getReference()
                         .child("Name_Id").child(Uid).updateChildren(SingleMap);
+
+                chatAdapter.notifyDataSetChanged();
                 break;
 
             case R.id.del_conversation:
@@ -358,11 +352,12 @@ public class ChatsActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void SetConnection() {
+    private void SetConnection() { // This Method will set the connection to both parties in a Single Database where they are able to communicate
         FirebaseDatabase.getInstance().getReference().child("Name_Id").child(Uid)
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
+
                         CurrentUid = snapshot.child("SenderId").getValue(String.class);
                         PartnerName = snapshot.child("Nickname").getValue(String.class);
                         ReceiverUid = snapshot.child("ReceiverId").getValue(String.class);
@@ -376,11 +371,11 @@ public class ChatsActivity extends AppCompatActivity {
 
                         linearLayoutManager = new LinearLayoutManager(ChatsActivity.this);
                         chatsBinding.chatsRecycler.setLayoutManager(linearLayoutManager);
-                        chatAdapter = new ChatAdapter(ChatsActivity.this, chats, SenderRoom, ReceiverRoom);
+
+
+                        PopulateRecyclerView(SenderRoom, ReceiverRoom);
 
                         getToken();
-                        PopulateRecyclerView(SenderRoom);
-                        chatsBinding.chatsRecycler.setAdapter(chatAdapter);
                     }
 
                     @Override
@@ -393,19 +388,20 @@ public class ChatsActivity extends AppCompatActivity {
 
     private void showActiveStatus() {
         FirebaseDatabase.getInstance().getReference().child("presence").
-                child(ReceiverUid).addValueEventListener(new ValueEventListener() {
+                addValueEventListener(new ValueEventListener() {
+                    @SuppressLint("SetTextI18n")
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if (snapshot.exists()) {
-                            String status = snapshot.getValue(String.class);
-                            if (!status.isEmpty()) {
-                                if (status.equals("Offline")) {
-                                    chatsBinding.status.setText("Offline");
-                                    chatsBinding.status.setVisibility(View.VISIBLE);
-                                } else {
-                                    chatsBinding.status.setText(status);
-                                    chatsBinding.status.setVisibility(View.VISIBLE);
-                                }
+                            String status = snapshot.child(ReceiverUid).getValue(String.class);
+
+                            assert status != null;
+                            if (status.equals("Offline")) {
+                                chatsBinding.status.setText("Offline");
+                                chatsBinding.status.setVisibility(View.VISIBLE);
+                            } else {
+                                chatsBinding.status.setText(status);
+                                chatsBinding.status.setVisibility(View.VISIBLE);
                             }
                         }
                     }
@@ -418,7 +414,7 @@ public class ChatsActivity extends AppCompatActivity {
 
     }
 
-    private void showProfileImage() {
+    private void showProfileImage() { // This Method will Show the Profile Image of the particular User.
         StorageReference storageReference = FirebaseStorage.getInstance().getReference()
                 .child("UserProfileImages").child(ReceiverUid);
 
@@ -439,13 +435,10 @@ public class ChatsActivity extends AppCompatActivity {
     }
 
     public void SendMessage() {
+
         String randomPushKey = firebaseDatabase.getReference().push().getKey();
         String typedMessage = chatsBinding.typedMessage.getText().toString();
         MediaPlayer mediaPlayer = MediaPlayer.create(ChatsActivity.this, R.raw.tick);
-
-        Date date = new Date();
-        ChatModel chatsModel = new ChatModel(typedMessage, CurrentUid, date.getTime());
-        chatsBinding.typedMessage.setText("");
 
         FirebaseDatabase.getInstance().getReference()
                 .child("Name_Id").child(ReceiverUid)
@@ -453,6 +446,39 @@ public class ChatsActivity extends AppCompatActivity {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         NotificationName = snapshot.child("Nickname").getValue(String.class);
+
+                        Calendar c = Calendar.getInstance();
+                        @SuppressLint("SimpleDateFormat")
+                        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm aa");
+                        String Datetime = sdf.format(c.getTime());
+                        ChatModel chatsModel = new ChatModel(typedMessage, CurrentUid, Datetime, "null", NotificationName);
+                        chatsBinding.typedMessage.setText("");
+
+                        if (!typedMessage.isEmpty()) {
+                            assert randomPushKey != null;
+                            firebaseDatabase.getReference().child("Chats")
+                                    .child(SenderRoom)
+                                    .child("messages")
+                                    .child(randomPushKey)
+                                    .setValue(chatsModel)
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void unused) {
+                                            firebaseDatabase.getReference().child("Chats")
+                                                    .child(ReceiverRoom)
+                                                    .child("messages")
+                                                    .child(randomPushKey)
+                                                    .setValue(chatsModel).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                        @Override
+                                                        public void onSuccess(Void unused) {
+                                                            mediaPlayer.start();
+                                                            SendNotification(NotificationName, typedMessage, token);
+                                                            Log.d(TAG, "onSuccess: " + NotificationName);
+                                                        }
+                                                    });
+                                        }
+                                    });
+                        }
                     }
 
                     @Override
@@ -461,44 +487,25 @@ public class ChatsActivity extends AppCompatActivity {
                     }
                 });
 
-        if (!typedMessage.isEmpty()) {
-            assert randomPushKey != null;
-            firebaseDatabase.getReference().child("Chats")
-                    .child(SenderRoom)
-                    .child("messages")
-                    .child(randomPushKey)
-                    .setValue(chatsModel)
-                    .addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void unused) {
-                            firebaseDatabase.getReference().child("Chats")
-                                    .child(ReceiverRoom)
-                                    .child("messages")
-                                    .child(randomPushKey)
-                                    .setValue(chatsModel).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                        @SuppressLint("NotifyDataSetChanged")
-                                        @Override
-                                        public void onSuccess(Void unused) {
-                                            mediaPlayer.start();
-                                            SendNotification(NotificationName, typedMessage, token);
-                                        }
-                                    });
 
-                            HashMap<String, Object> lastMessageObj = new HashMap<>();
-                            lastMessageObj.put("lastMessage", chatsModel.getMessage());
-                            lastMessageObj.put("messageTime", date.getTime());
-
-                            firebaseDatabase.getReference().child("Chats")
-                                    .child(SenderRoom).updateChildren(lastMessageObj);
-
-                            firebaseDatabase.getReference().child("Chats")
-                                    .child(ReceiverRoom).updateChildren(lastMessageObj);
-                        }
-                    });
-        }
     }
 
-    private void PopulateRecyclerView(String senderRoom) {
+    private void PopulateRecyclerView(String senderRoom, String receiverRoom) { // Showing all the messages of both Parties
+
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(ChatsActivity.this,
+                DividerItemDecoration.VERTICAL);
+        chatsBinding.chatsRecycler.addItemDecoration(dividerItemDecoration);
+
+        FirebaseRecyclerOptions<ChatModel> options =
+                new FirebaseRecyclerOptions.Builder<ChatModel>()
+                        .setQuery(FirebaseDatabase.getInstance().getReference().
+                                child("Chats").child(senderRoom).child("messages"), ChatModel.class)
+                        .build(); // Fetching the Messages from Chats-SenderRoom-messages node from the database.
+
+        messageAdapter = new MessageAdapter(options, ChatsActivity.this, SenderRoom, ReceiverUid, receiverRoom);
+        chatsBinding.chatsRecycler.setAdapter(messageAdapter);
+
+        messageAdapter.startListening(); // This will enable Listening all the data and messages from the database and show it to the RecyclerView
 
         firebaseDatabase.getReference().child("Chats")
                 .child(senderRoom)
@@ -508,13 +515,18 @@ public class ChatsActivity extends AppCompatActivity {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         chats.clear();
+                        int childCount = (int) snapshot.getChildrenCount();
+
                         for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                             ChatModel chatsModel = dataSnapshot.getValue(ChatModel.class);
                             assert chatsModel != null;
                             chatsModel.setMessageId(dataSnapshot.getKey());
                             chats.add(chatsModel);
                         }
-                        chatAdapter.notifyDataSetChanged();
+
+                        chatsBinding.chatsRecycler.smoothScrollToPosition(childCount);
+                        messageAdapter.notifyDataSetChanged();
+
                     }
 
                     @Override
@@ -524,7 +536,7 @@ public class ChatsActivity extends AppCompatActivity {
                 });
     }
 
-    private void SendNotification(String SenderName, String Message, String token) {
+    private void SendNotification(String SenderName, String Message, String token) { // Sending the Notification using Volley Library
 
         try {
             RequestQueue queue = Volley.newRequestQueue(this);
@@ -564,12 +576,13 @@ public class ChatsActivity extends AppCompatActivity {
             queue.add(request);
 
 
-        } catch (Exception ex) {
-
+        } catch (Exception e) {
+            e.getMessage();
         }
 
     }
 
+    //    Method for all audio permissions
     private void requestPermissions() {
         isWritePermissionGranted = ContextCompat.checkSelfPermission(ChatsActivity.this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
@@ -580,11 +593,11 @@ public class ChatsActivity extends AppCompatActivity {
         List<String> permissionRequests = new ArrayList<>();
 
         if (!isWritePermissionGranted) {
-            permissionRequests.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            permissionRequests.add(Manifest.permission.WRITE_EXTERNAL_STORAGE); // Adding to the list if the permission is not granted
         }
 
         if (!isRecordAudioPermissionGranted) {
-            permissionRequests.add(Manifest.permission.RECORD_AUDIO);
+            permissionRequests.add(Manifest.permission.RECORD_AUDIO); // Same as above
         }
 
         if (!permissionRequests.isEmpty()) {
@@ -593,7 +606,7 @@ public class ChatsActivity extends AppCompatActivity {
     }
 
 
-    private void SendVoiceMessage() {
+    private void SendVoiceMessage() { // Enabling the voice recording feature with Third Party Library
 
         chatsBinding.recordButton.setRecordView(chatsBinding.recordView);
         chatsBinding.recordView.setSoundEnabled(false);
@@ -613,7 +626,7 @@ public class ChatsActivity extends AppCompatActivity {
                 //Start Recording..
                 Log.d("RecordView", "onStart");
 
-                setUpRecording();
+                setUpRecording(); // This method will get us the recording
 
                 try {
                     mediaRecorder.prepare();
@@ -686,7 +699,7 @@ public class ChatsActivity extends AppCompatActivity {
         });
     }
 
-    private void sendRecordingMessage() {
+    private void sendRecordingMessage() { // Sending the voice recorded message
 
         Calendar calendar = Calendar.getInstance();
         StorageReference storageReference = firebaseStorage.getReference().child("VoiceMessages").child(Uid)
@@ -703,13 +716,6 @@ public class ChatsActivity extends AppCompatActivity {
                         String voiceMessage = uri.toString();
                         Log.d(TAG, "onSuccess: " + voiceMessage);
 
-                        Date date = new Date();
-                        String randomPushKey = firebaseDatabase.getReference().push().getKey();
-                        String typedMessage = chatsBinding.typedMessage.getText().toString();
-                        ChatModel chatsModel = new ChatModel(typedMessage, CurrentUid, date.getTime());
-                        chatsModel.setMessage("voice");
-                        chatsModel.setVoiceMessage(voiceMessage);
-                        chatsBinding.typedMessage.setText("");
 
                         FirebaseDatabase.getInstance().getReference()
                                 .child("Name_Id").child(ReceiverUid)
@@ -717,6 +723,41 @@ public class ChatsActivity extends AppCompatActivity {
                                     @Override
                                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                                         NotificationName = snapshot.child("Nickname").getValue(String.class);
+
+                                        Calendar c = Calendar.getInstance();
+                                        @SuppressLint("SimpleDateFormat")
+                                        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm aa");
+                                        String Datetime = sdf.format(c.getTime());
+
+
+                                        String randomPushKey = firebaseDatabase.getReference().push().getKey();
+                                        ChatModel chatsModel = new ChatModel("", CurrentUid, Datetime, "null", NotificationName);
+                                        chatsModel.setMessage("voice");
+                                        chatsModel.setVoiceMessage(voiceMessage);
+
+                                        assert randomPushKey != null;
+                                        firebaseDatabase.getReference().child("Chats")
+                                                .child(SenderRoom)
+                                                .child("messages")
+                                                .child(randomPushKey)
+                                                .setValue(chatsModel)
+                                                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                    @Override
+                                                    public void onSuccess(Void unused) {
+                                                        firebaseDatabase.getReference().child("Chats")
+                                                                .child(ReceiverRoom)
+                                                                .child("messages")
+                                                                .child(randomPushKey)
+                                                                .setValue(chatsModel).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                    @SuppressLint("NotifyDataSetChanged")
+                                                                    @Override
+                                                                    public void onSuccess(Void unused) {
+                                                                        SendNotification(NotificationName, "VoiceMessage", token);
+                                                                    }
+                                                                });
+
+                                                    }
+                                                });
                                     }
 
                                     @Override
@@ -725,38 +766,6 @@ public class ChatsActivity extends AppCompatActivity {
                                     }
                                 });
 
-                        assert randomPushKey != null;
-                        firebaseDatabase.getReference().child("Chats")
-                                .child(SenderRoom)
-                                .child("messages")
-                                .child(randomPushKey)
-                                .setValue(chatsModel)
-                                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                    @Override
-                                    public void onSuccess(Void unused) {
-                                        firebaseDatabase.getReference().child("Chats")
-                                                .child(ReceiverRoom)
-                                                .child("messages")
-                                                .child(randomPushKey)
-                                                .setValue(chatsModel).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                    @SuppressLint("NotifyDataSetChanged")
-                                                    @Override
-                                                    public void onSuccess(Void unused) {
-                                                        SendNotification(NotificationName, "VoiceMessage", token);
-                                                    }
-                                                });
-
-                                        HashMap<String, Object> lastMessageObj = new HashMap<>();
-                                        lastMessageObj.put("lastMessage", chatsModel.getMessage());
-                                        lastMessageObj.put("messageTime", date.getTime());
-
-                                        firebaseDatabase.getReference().child("Chats")
-                                                .child(SenderRoom).updateChildren(lastMessageObj);
-
-                                        firebaseDatabase.getReference().child("Chats")
-                                                .child(ReceiverRoom).updateChildren(lastMessageObj);
-                                    }
-                                });
 
                     }
                 });
@@ -765,7 +774,7 @@ public class ChatsActivity extends AppCompatActivity {
     }
 
 
-    private void setUpRecording() {
+    private void setUpRecording() { // This method will record the audio after clicking onto the recording button
 
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -800,7 +809,7 @@ public class ChatsActivity extends AppCompatActivity {
         FirebaseDatabase.getInstance().getReference().child("presence").child(currentId).setValue("Offline");
     }
 
-    private void DialogForEngagement() {
+    private void DialogForEngagement() { // This dialog will appear to confirm the Engagement between both parties
 
         final Dialog dialog = new Dialog(ChatsActivity.this);
         dialog.getWindow().setContentView(R.layout.confirm_requestlayout);
@@ -834,6 +843,13 @@ public class ChatsActivity extends AppCompatActivity {
         } catch (NullPointerException e) {
             e.getCause();
         }
+
         super.onStop();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
     }
 }

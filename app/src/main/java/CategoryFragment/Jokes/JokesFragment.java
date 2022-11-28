@@ -49,6 +49,7 @@ public class JokesFragment extends Fragment {
         });
 
         jokesBinding.categoryVPager.addOnPageChangeListener(new TabLayout.TabLayoutOnPageChangeListener(jokesBinding.JokesCategoryTab));
+        // This will change the page according to the tabLayout.
 
         return jokesBinding.getRoot();
     }

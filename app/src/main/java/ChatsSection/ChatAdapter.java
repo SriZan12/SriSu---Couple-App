@@ -1,18 +1,19 @@
 package ChatsSection;
 
+
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -23,16 +24,18 @@ import com.example.srisu.R;
 import com.example.srisu.databinding.ReceiveMessageBinding;
 import com.example.srisu.databinding.SentMessageBinding;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import ChatsSection.ChatModel.ChatModel;
+import java.util.Objects;
 
 public class ChatAdapter extends RecyclerView.Adapter {
 
-    private static final String TAG = "Reaction";
+    private static final String TAG = "Message";
     Context thisContext;
     ArrayList<ChatModel> chats;
     int ITEM_SENT = 1;
@@ -46,21 +49,21 @@ public class ChatAdapter extends RecyclerView.Adapter {
         this.chats = chats;
         this.SenderRoom = senderRoom;
         this.ReceiverRoom = receiverRoom;
+
     }
 
     public ChatAdapter() {
-
     }
 
     @SuppressLint("ClickableViewAccessibility")
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if(viewType == ITEM_SENT){
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.sent_message,parent,false);
+        if (viewType == ITEM_SENT) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.sent_message, parent, false);
             return new SentViewHolder(view);
-        }else{
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.receive_message,parent,false);
+        } else {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.receive_message, parent, false);
             return new ReceiveViewHolder(view);
         }
     }
@@ -68,37 +71,74 @@ public class ChatAdapter extends RecyclerView.Adapter {
     @Override
     public int getItemViewType(int position) {
         ChatModel chatsModel = chats.get(position);
-        if(FirebaseAuth.getInstance().getUid().equals(chatsModel.getSenderId())){
+        if (Objects.equals(FirebaseAuth.getInstance().getUid(), chatsModel.getSenderId())) {
             return ITEM_SENT;
-        }else{
+        } else {
             return ITEM_RECEIVE;
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
+
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, @SuppressLint("RecyclerView") int position) {
+    public long getItemId(int position) {
+        return position;
+    }
 
-        ChatModel chatsModel = chats.get(position);
+    @SuppressLint({"ClickableViewAccessibility", "ResourceType"})
+    @Override
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
 
-        if(holder.getClass() == SentViewHolder.class){
-            ((SentViewHolder) holder).sentMessageBinding.message.setText(chatsModel.getMessage());
-            if(chatsModel.getMessage().equals("Photo") || chatsModel.getMessage().equals("Meme")){
-                ((SentViewHolder) holder).sentMessageBinding.imageView.setVisibility(View.VISIBLE);
-                ((SentViewHolder) holder).sentMessageBinding.message.setVisibility(View.GONE);
 
-                Glide.with(thisContext).load(chatsModel.getImageUrl())
-                        .placeholder(R.drawable.placeholder)
-                        .into(((SentViewHolder) holder).sentMessageBinding.imageView);
+        if (holder.getClass() == SentViewHolder.class) {
 
-                Log.d(TAG, "onBindViewHolder: " + chatsModel.getImageUrl());
-            }
+//            ((SentViewHolder) holder).setIsRecyclable(false);
 
-            if(chatsModel.getMessage().equals("voice")){
-                ((SentViewHolder) holder).sentMessageBinding.play.setVisibility(View.VISIBLE);
-                ((SentViewHolder) holder).sentMessageBinding.playVoice.setVisibility(View.VISIBLE);
-                ((SentViewHolder) holder).sentMessageBinding.message.setVisibility(View.GONE);
+            ChatModel chatsModel = chats.get(((SentViewHolder) holder).getBindingAdapterPosition());
+            String message = chatsModel.getMessage();
+            String reactions = chatsModel.getReaction();
 
+                if (message.equals("Photo") || message.equals("Meme")) {
+                    ((SentViewHolder) holder).sentMessageBinding.message.setVisibility(View.GONE);
+                    ((SentViewHolder) holder).sentMessageBinding.SentImageView.setVisibility(View.VISIBLE);
+
+                    Glide.with(thisContext).load(chatsModel.getImageUrl())
+                            .placeholder(R.drawable.placeholder).into(((SentViewHolder) holder).sentMessageBinding.SentImageView);
+
+                } else if (message.equals("voice")) {
+                    ((SentViewHolder) holder).sentMessageBinding.message.setVisibility(View.GONE);
+                    ((SentViewHolder) holder).sentMessageBinding.play.setVisibility(View.VISIBLE);
+                    ((SentViewHolder) holder).sentMessageBinding.playVoice.setVisibility(View.VISIBLE);
+
+                } else {
+                    ((SentViewHolder) holder).sentMessageBinding.message.setText(message);
+                }
+
+
+            Log.d(TAG, "onBindViewHolder: " + message);
+            Log.d(TAG, "onBindViewHolder: " + reactions);
+            switch (reactions) {
+                case "like":
+                    ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.like);
+                    break;
+
+                case "love":
+                    ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.love);
+                    break;
+
+                case "sad":
+                    ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.sad);
+                    break;
+
+                case "haha":
+                    ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.laughing);
+
+                case "angry":
+                    ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.angry);
+                    break;
+
+                case "wow":
+                    ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.haha);
+                    break;
             }
 
 
@@ -107,7 +147,7 @@ public class ChatAdapter extends RecyclerView.Adapter {
                 public void onClick(View v) {
 
 
-                    if(mediaPlayer != null) {
+                    if (mediaPlayer != null) {
                         mediaPlayer.stop();
                         mediaPlayer.reset();
                         mediaPlayer.release();
@@ -134,49 +174,19 @@ public class ChatAdapter extends RecyclerView.Adapter {
                 public void onClick(View v) {
                     ((SentViewHolder) holder).sentMessageBinding.pause.setVisibility(View.GONE);
                     ((SentViewHolder) holder).sentMessageBinding.play.setVisibility(View.VISIBLE);
-                    if(mediaPlayer != null){
-                        if (mediaPlayer.isPlaying()){
+                    if (mediaPlayer != null) {
+                        if (mediaPlayer.isPlaying()) {
                             mediaPlayer.pause();
                         }
                     }
                 }
             });
 
-
-            if(chatsModel.getReaction() != null){
-                switch (chatsModel.getReaction()){
-                    case "like":
-                        ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.like);
-                        break;
-
-                    case "love":
-                        ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.love);
-                        break;
-
-                    case "sad":
-                        ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.sad);
-                        break;
-
-                    case "wow":
-                        ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.haha);
-                        break;
-
-                    case "angry":
-                        ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.angry);
-                        break;
-
-                    case "haha":
-                        ((SentViewHolder) holder).sentMessageBinding.senderReactions.setImageResource(R.drawable.laughing);
-                        break;
-
-                }
-            }
-
-            ((SentViewHolder) holder).sentMessageBinding.imageView.setOnClickListener(new View.OnClickListener() {
+            ((SentViewHolder) holder).sentMessageBinding.SentImageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Intent intent = new Intent(thisContext,ShowPhotoActivity.class);
-                    intent.putExtra("photo",chatsModel.getImageUrl());
+                    Intent intent = new Intent(thisContext, ShowPhotoActivity.class);
+                    intent.putExtra("photo", chatsModel.getImageUrl());
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     thisContext.startActivity(intent);
                 }
@@ -201,8 +211,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                         @Override
                         public void onClick(View v) {
 
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","like");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "like");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -213,6 +223,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                                     .child("Chats").child(ReceiverRoom)
                                     .child("messages")
                                     .child(chatsModel.getMessageId()).updateChildren(reactionMap);
+                            notifyDataSetChanged();
+
 
                             dialog.dismiss();
 
@@ -224,8 +236,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     love.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","love");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "love");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -236,6 +248,7 @@ public class ChatAdapter extends RecyclerView.Adapter {
                                     .child("Chats").child(ReceiverRoom)
                                     .child("messages")
                                     .child(chatsModel.getMessageId()).updateChildren(reactionMap);
+                            notifyDataSetChanged();
 
                             dialog.dismiss();
                         }
@@ -244,8 +257,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     sad.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","sad");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "sad");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -256,6 +269,7 @@ public class ChatAdapter extends RecyclerView.Adapter {
                                     .child("Chats").child(ReceiverRoom)
                                     .child("messages")
                                     .child(chatsModel.getMessageId()).updateChildren(reactionMap);
+                            notifyDataSetChanged();
 
                             dialog.dismiss();
                         }
@@ -264,8 +278,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     wow.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","wow");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "wow");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -276,6 +290,7 @@ public class ChatAdapter extends RecyclerView.Adapter {
                                     .child("Chats").child(ReceiverRoom)
                                     .child("messages")
                                     .child(chatsModel.getMessageId()).updateChildren(reactionMap);
+                            notifyDataSetChanged();
 
                             dialog.dismiss();
                         }
@@ -284,8 +299,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     haha.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","haha");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "haha");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -296,6 +311,7 @@ public class ChatAdapter extends RecyclerView.Adapter {
                                     .child("Chats").child(ReceiverRoom)
                                     .child("messages")
                                     .child(chatsModel.getMessageId()).updateChildren(reactionMap);
+                            notifyDataSetChanged();
 
                             dialog.dismiss();
                         }
@@ -304,8 +320,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     angry.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","angry");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "angry");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -316,6 +332,7 @@ public class ChatAdapter extends RecyclerView.Adapter {
                                     .child("Chats").child(ReceiverRoom)
                                     .child("messages")
                                     .child(chatsModel.getMessageId()).updateChildren(reactionMap);
+                            notifyDataSetChanged();
 
                             dialog.dismiss();
                         }
@@ -384,7 +401,7 @@ public class ChatAdapter extends RecyclerView.Adapter {
             });
 
 
-            ((SentViewHolder) holder).sentMessageBinding.imageView.setOnLongClickListener(new View.OnLongClickListener() {
+            ((SentViewHolder) holder).sentMessageBinding.linearLayout.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
                     final Dialog dialog = new Dialog(thisContext);
@@ -402,8 +419,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     like.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","like");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "like");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -422,8 +439,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     love.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","love");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "love");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -442,8 +459,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     sad.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","sad");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "sad");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -462,8 +479,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     wow.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","wow");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "wow");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -482,8 +499,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     haha.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","haha");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "haha");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -502,8 +519,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     angry.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","angry");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "angry");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -522,10 +539,12 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     return false;
                 }
             });
-        }else{
-            ((ReceiveViewHolder) holder).receiveMessageBinding.message.setText(chatsModel.getMessage());
+        } else {
+            ChatModel chatsModel = chats.get(((ReceiveViewHolder) holder).getAbsoluteAdapterPosition());
+            String message = chatsModel.getMessage();
+            String reactions = chatsModel.getReaction();
 
-            if(chatsModel.getMessage().equals("Photo") || chatsModel.getMessage().equals("Meme")){
+            if (message.equals("Photo") || message.equals("Meme")) {
                 ((ReceiveViewHolder) holder).receiveMessageBinding.imageView.setVisibility(View.VISIBLE);
                 ((ReceiveViewHolder) holder).receiveMessageBinding.message.setVisibility(View.GONE);
 
@@ -533,21 +552,49 @@ public class ChatAdapter extends RecyclerView.Adapter {
                         .placeholder(R.drawable.placeholder)
                         .into(((ReceiveViewHolder) holder).receiveMessageBinding.imageView);
 
-                Log.d(TAG, "onBindViewHolder: Receiver " + chatsModel.getImageUrl());
-            }
 
-            if(chatsModel.getMessage().equals("voice")){
+            } else if (message.equals("voice")) {
                 ((ReceiveViewHolder) holder).receiveMessageBinding.play.setVisibility(View.VISIBLE);
                 ((ReceiveViewHolder) holder).receiveMessageBinding.playVoice.setVisibility(View.VISIBLE);
                 ((ReceiveViewHolder) holder).receiveMessageBinding.message.setVisibility(View.GONE);
 
+            } else {
+                ((ReceiveViewHolder) holder).receiveMessageBinding.message.setText(message);
             }
+
+
+            switch (reactions) {
+                case "like":
+                    ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.likes);
+                    break;
+
+                case "love":
+                    ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.love);
+                    break;
+
+                case "sad":
+                    ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.sad);
+                    break;
+
+                case "haha":
+                    ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.laughing);
+                    break;
+
+                case "angry":
+                    ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.angry);
+                    break;
+
+                case "wow":
+                    ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.haha);
+                    break;
+            }
+
 
             ((ReceiveViewHolder) holder).receiveMessageBinding.play.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
 
-                    if(mediaPlayer != null) {
+                    if (mediaPlayer != null) {
                         mediaPlayer.stop();
                         mediaPlayer.reset();
                         mediaPlayer.release();
@@ -573,52 +620,24 @@ public class ChatAdapter extends RecyclerView.Adapter {
             ((ReceiveViewHolder) holder).receiveMessageBinding.pause.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                        ((ReceiveViewHolder) holder).receiveMessageBinding.pause.setVisibility(View.GONE);
-                        ((ReceiveViewHolder) holder).receiveMessageBinding.play.setVisibility(View.VISIBLE);
-                        if (mediaPlayer != null) {
-                                mediaPlayer.pause();
-                        }
+                    ((ReceiveViewHolder) holder).receiveMessageBinding.pause.setVisibility(View.GONE);
+                    ((ReceiveViewHolder) holder).receiveMessageBinding.play.setVisibility(View.VISIBLE);
+                    if (mediaPlayer != null) {
+                        mediaPlayer.pause();
+                    }
                 }
             });
 
             ((ReceiveViewHolder) holder).receiveMessageBinding.imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Intent intent = new Intent(thisContext,ShowPhotoActivity.class);
-                    intent.putExtra("photo",chatsModel.getImageUrl());
+                    Intent intent = new Intent(thisContext, ShowPhotoActivity.class);
+                    intent.putExtra("photo", chatsModel.getImageUrl());
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     thisContext.startActivity(intent);
                 }
             });
 
-
-            if(chatsModel.getReaction() != null){
-                switch (chatsModel.getReaction()){
-                    case "like":
-                        ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.like);
-                        break;
-
-                    case "love":
-                        ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.love);
-                        break;
-
-                    case "sad":
-                        ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.sad);
-                        break;
-
-                    case "wow":
-                        ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.haha);
-                        break;
-
-                    case "angry":
-                        ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.angry);
-                        break;
-
-                    case "haha":
-                        ((ReceiveViewHolder) holder).receiveMessageBinding.receiverReactions.setImageResource(R.drawable.laughing);
-                        break;
-                }
-            }
 
             ((ReceiveViewHolder) holder).receiveMessageBinding.linearLayout.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
@@ -638,8 +657,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     like.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","like");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "like");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -658,8 +677,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     love.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","love");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "love");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -678,8 +697,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     sad.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","sad");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "sad");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -698,8 +717,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     wow.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","wow");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "wow");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -718,8 +737,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     haha.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","haha");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "haha");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -738,8 +757,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     angry.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","angry");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "angry");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -777,8 +796,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     like.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","like");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "like");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -797,8 +816,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     love.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","love");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "love");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -817,8 +836,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     sad.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","sad");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "sad");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -837,8 +856,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     wow.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","wow");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "wow");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -857,8 +876,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     haha.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","haha");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "haha");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -877,8 +896,8 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     angry.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            HashMap<String,Object> reactionMap = new HashMap<>();
-                            reactionMap.put("reaction","angry");
+                            HashMap<String, Object> reactionMap = new HashMap<>();
+                            reactionMap.put("reaction", "angry");
 
                             FirebaseDatabase.getInstance().getReference()
                                     .child("Chats").child(SenderRoom)
@@ -956,9 +975,9 @@ public class ChatAdapter extends RecyclerView.Adapter {
                     });
                 }
             });
-
-
         }
+
+
     }
 
 
@@ -967,18 +986,20 @@ public class ChatAdapter extends RecyclerView.Adapter {
         return chats.size();
     }
 
-    public static class SentViewHolder extends RecyclerView.ViewHolder{
+
+    public static class SentViewHolder extends RecyclerView.ViewHolder {
 
         SentMessageBinding sentMessageBinding;
 
         public SentViewHolder(@NonNull View itemView) {
             super(itemView);
             sentMessageBinding = SentMessageBinding.bind(itemView);
+
         }
 
     }
 
-    public static class ReceiveViewHolder extends RecyclerView.ViewHolder{
+    public static class ReceiveViewHolder extends RecyclerView.ViewHolder {
 
         ReceiveMessageBinding receiveMessageBinding;
 

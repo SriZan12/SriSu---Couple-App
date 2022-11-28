@@ -12,8 +12,6 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -31,10 +29,6 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-
-import java.io.InputStream;
-
-import Models.UserModel;
 
 public class ProfileActivity extends AppCompatActivity {
 
@@ -78,19 +72,31 @@ public class ProfileActivity extends AppCompatActivity {
                 String FullName = profileBinding.fullName.getText().toString();
                 String userName = profileBinding.userName.getText().toString();
 
-                try{
-                    InputStream inputStream = getContentResolver().openInputStream(FilePath);
-                    Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                    UploadToFirebase(bitmap,FullName,userName);
+                if(FullName.isEmpty()){
+                    profileBinding.fullName.setError("Missing");
+                    profileBinding.fullName.setFocusable(true);
+                    return;
 
-                }catch (Exception e){
-                    e.printStackTrace();
+                }else if(userName.isEmpty()){
+                    profileBinding.userName.setFocusable(true);
+                    profileBinding.userName.setError("Missing");
+                    return;
                 }
+                        UploadToFirebase(FullName, userName);
+
+
             }
         });
     }
 
-    private void UploadToFirebase(Bitmap bitmap, String fullName, String userName) {
+    private void UploadToFirebase(String fullName, String userName) {
+
+        if(FilePath == null){
+            profileBinding.profileImage.setFocusable(true);
+            Toast.makeText(this, "Set Profile Picture", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         progressDialog = new ProgressDialog(ProfileActivity.this);
         progressDialog.setTitle("Setting Up Profile");
         progressDialog.show();
@@ -98,6 +104,7 @@ public class ProfileActivity extends AppCompatActivity {
         StorageReference storageReference = firebaseStorage.getReference()
                 .child("UserProfileImages")
                 .child(firebaseAuth.getUid());
+
 
         storageReference.putFile(FilePath).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override

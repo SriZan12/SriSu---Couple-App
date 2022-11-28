@@ -1,5 +1,7 @@
 package SignInSection;
 
+import static android.content.ContentValues.TAG;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -7,6 +9,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
@@ -29,7 +32,6 @@ public class OtpActivity extends AppCompatActivity {
     ActivityOtpBinding otpBinding;
     FirebaseAuth firebaseAuth;
     String VerificationId;
-    ProgressDialog progressDialog;
 
 
     @Override
@@ -38,46 +40,18 @@ public class OtpActivity extends AppCompatActivity {
         otpBinding = ActivityOtpBinding.inflate(getLayoutInflater());
         setContentView(otpBinding.getRoot());
 
-        firebaseAuth = FirebaseAuth.getInstance();
-        progressDialog = new ProgressDialog(OtpActivity.this);
-        progressDialog.setMessage("Sending OTP");
-        progressDialog.setCancelable(false);
-        progressDialog.show();
-
         otpBinding.pinView.requestFocus();
         String number = getIntent().getStringExtra("number");
-        String Number = "+" + " " + number;
+        VerificationId = getIntent().getStringExtra("verificationId");
+        firebaseAuth = FirebaseAuth.getInstance();
+        String Number = number;
         otpBinding.phoneNumber.setText(Number);
 
+        Log.d(TAG, "onCreate: " + Number);
+
         InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, InputMethodManager.HIDE_IMPLICIT_ONLY);
+        inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, InputMethodManager.HIDE_IMPLICIT_ONLY); // Focusing on the PinView after the activity starts
 
-        PhoneAuthOptions options =
-                PhoneAuthOptions.newBuilder(firebaseAuth)
-                        .setPhoneNumber(Number)       // Phone number to verify
-                        .setTimeout(120L, TimeUnit.SECONDS) // Timeout and unit
-                        .setActivity(this)                 // Activity (for callback binding)
-                        .setCallbacks(new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                            @Override
-                            public void onVerificationCompleted(@NonNull PhoneAuthCredential phoneAuthCredential) {
-
-                            }
-
-                            @Override
-                            public void onVerificationFailed(@NonNull FirebaseException e) {
-
-                            }
-
-                            @Override
-                            public void onCodeSent(@NonNull String verifyId, @NonNull PhoneAuthProvider.ForceResendingToken forceResendingToken) {
-                                super.onCodeSent(verifyId, forceResendingToken);
-
-                                progressDialog.dismiss();
-                                VerificationId = verifyId;
-                            }
-                        })
-                        .build();
-        PhoneAuthProvider.verifyPhoneNumber(options);
 
         otpBinding.confirmOtp.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -94,21 +68,24 @@ public class OtpActivity extends AppCompatActivity {
                     otpBinding.pinView.requestFocus();
                     otpBinding.pinView.setError("Invalid");
                 } else {
-                    String Otp = otpBinding.pinView.getText().toString();
-                    PhoneAuthCredential credential = PhoneAuthProvider.getCredential(VerificationId, Otp);
 
-                    firebaseAuth.signInWithCredential(credential).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (task.isSuccessful()) {
-                                Toast.makeText(OtpActivity.this, "Logged In", Toast.LENGTH_SHORT).show();
-                                startActivity(new Intent(OtpActivity.this,ProfileActivity.class));
-                                finish();
-                            } else {
-                                Toast.makeText(OtpActivity.this, "Logged In Failed", Toast.LENGTH_SHORT).show();
+                    if(VerificationId != null) {
+
+                        String Otp = otpBinding.pinView.getText().toString();
+                        Log.d(TAG, "onClick: " + Otp);
+                        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(VerificationId, Otp);
+
+                        firebaseAuth.signInWithCredential(credential).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                            @Override
+                            public void onComplete(@NonNull Task<AuthResult> task) {
+                                if (task.isSuccessful()) {
+                                    startActivity(new Intent(OtpActivity.this, ProfileActivity.class)); // Signing IN Successfully
+                                } else {
+                                    Toast.makeText(OtpActivity.this, "Invalid Otp", Toast.LENGTH_SHORT).show();
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
 
                 }
             }
